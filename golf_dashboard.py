@@ -3,6 +3,11 @@ import requests
 import pandas
 import streamlit as st
 from geopy.geocoders import Nominatim
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file
+load_dotenv()
 
 wind_types = ["Into Wind", "Down Wind", "Crosswind"]
 
@@ -50,18 +55,19 @@ def adjusted_distance(distance, wind_speed, wind_type):
 loc = Nominatim(user_agent="GetLoc")
  
 # entering the location name
-getLoc = loc.geocode("Bathgate")
+getLoc = loc.geocode("Bathgate Golf Club")
 
-print(getLoc.address)
+location_address = getLoc.address
 
 st.title("Golf Dashboard - Phase 1")
 
 lat = getLoc.latitude
 lon = getLoc.longitude
-api_key = "cfc54dfa691b9699aa872b7e241e0227"
+geopy_api_key = os.getenv("GEOPY_API_KEY")
 
-result = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=imperial")
+result = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={geopy_api_key}&units=imperial")
 weather_data = result.json()
+print(weather_data)
 wind_speed = weather_data['wind']['speed']
 wind_direction = weather_data['wind']['deg']
 
@@ -70,11 +76,13 @@ wind_dir_string = wind_dir(wind_direction)
 col1, col2 = st.columns(2)
 
 with col1:
+    st.write(f"***Location***   {location_address}")
     st.write(f"**Wind Speed** {wind_speed} MPH")
     st.write(f"**Wind Direction** {wind_direction} Degrees, This is {wind_dir_string}")
 
         
 with st.form("my_form"):
+    golf_course = st.text_input("Enter your golf course")
     distance = st.text_input("Enter the distance", value="0")
     wind_type = st.radio(
     "What type of wind is it",
@@ -87,6 +95,24 @@ with st.form("my_form"):
     if submitted:
         st.write(f"Yardage: ***{distance}*** yards", f" Wind Direction: {wind_type}")
         st.write(f"Adjusted Yardage: {real_distance}")
+        
+location_name = "Bathgate Golf Club"
+
+# Google Maps Embed URL
+google_maps_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+if location_name:
+    # embed_url = f"https://www.google.com/maps/embed/v1/streetview?key={api_key}&q={golf_course.replace(' ', '+')}"
+    embed_url = f"https://www.google.com/maps/embed/v1/view?key={google_maps_api_key}&center={lat},{lon}&zoom=18&maptype=satellite"
+    st.markdown(f"""
+        <iframe 
+            width="600" 
+            height="450" 
+            style="border:0" 
+            loading="lazy" 
+            allowfullscreen 
+            src="{embed_url}">
+        </iframe>
+    """, unsafe_allow_html=True)
 
 st.caption("Golf Dashboard -Phase 1")
 
